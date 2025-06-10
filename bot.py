@@ -1,6 +1,7 @@
 
 from aiogram import Bot, Dispatcher, types, executor
-from config import TELEGRAM_BOT_TOKEN
+import os
+TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
 from parsers import parse_link
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
