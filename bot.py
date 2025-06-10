@@ -1,24 +1,32 @@
 import os
-from aiogram import Bot, Dispatcher, types, executor
+from aiohttp import web
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Update
+from aiogram.utils.executor import start_webhook
 from parsers import parse_link
 
-TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
-
-bot = Bot(token=TELEGRAM_BOT_TOKEN)
+TOKEN = os.getenv("BOT_TOKEN")
+bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-@dp.message_handler(commands=["start", "help"])
+WEBHOOK_HOST = os.getenv("RENDER_EXTERNAL_URL")  # Автоматическая переменная Render
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+
+WEBAPP_HOST = "0.0.0.0"
+WEBAPP_PORT = int(os.getenv("PORT", 10000))  # Render пробрасывает порт через $PORT
+
+@dp.message_handler(commands=["start"])
 async def start_cmd(msg: types.Message):
-    await msg.answer("Привет! Пришли ссылку на товар с Ozon, Wildberries или Яндекс.Маркета, и я сделаю карточку товара для канала 💬")
+    await msg.answer("Пришли ссылку на товар — я подготовлю красивый пост!")
 
 @dp.message_handler()
 async def handle_link(msg: types.Message):
     url = msg.text.strip()
     data = parse_link(url)
 
-    # Шаблон поста
-    post_text = f"""
-<b>{data.get("title", "Товар")}</b>
+    text = f"""
+<b>{data.get("title")}</b>
 
 {data.get("price", "")}
 {data.get("discount", "")}
@@ -27,9 +35,23 @@ async def handle_link(msg: types.Message):
 """.strip()
 
     if data.get("image"):
-        await bot.send_photo(msg.chat.id, photo=data["image"], caption=post_text, parse_mode="HTML")
+        await bot.send_photo(msg.chat.id, data["image"], caption=text, parse_mode="HTML")
     else:
-        await msg.answer(post_text, parse_mode="HTML")
+        await msg.answer(text, parse_mode="HTML")
+
+async def on_startup(dp):
+    await bot.set_webhook(WEBHOOK_URL)
+
+async def on_shutdown(dp):
+    await bot.delete_webhook()
 
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    start_webhook(
+        dispatcher=dp,
+        webhook_path=WEBHOOK_PATH,
+        on_startup=on_startup,
+        on_shutdown=on_shutdown,
+        skip_updates=True,
+        host=WEBAPP_HOST,
+        port=WEBAPP_PORT,
+    )
