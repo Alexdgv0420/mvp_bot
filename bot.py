@@ -1,7 +1,6 @@
 import os
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types
-from aiogram.types import Update
 from aiogram.utils.executor import start_webhook
 from parsers import parse_link
 import aiohttp
@@ -10,12 +9,13 @@ TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
-WEBHOOK_HOST = os.getenv("RENDER_EXTERNAL_URL")  # Автоматическая переменная Render
+WEBHOOK_HOST = os.getenv("RENDER_EXTERNAL_URL")
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
 WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 WEBAPP_HOST = "0.0.0.0"
-WEBAPP_PORT = int(os.getenv("PORT", 10000))  # Render пробрасывает порт через $PORT
+WEBAPP_PORT = int(os.getenv("PORT", 10000))
+
 
 async def is_valid_image(url):
     try:
@@ -26,9 +26,11 @@ async def is_valid_image(url):
     except:
         return False
 
+
 @dp.message_handler(commands=["start"])
 async def start_cmd(msg: types.Message):
     await msg.answer("Пришли ссылку на товар — я подготовлю красивый пост!")
+
 
 @dp.message_handler()
 async def handle_link(msg: types.Message):
@@ -36,12 +38,19 @@ async def handle_link(msg: types.Message):
     data = parse_link(url)
 
     text = f"""
-<b>{data.get("title")}</b>
+🔹 <b>{data.get("title", "Название неизвестно")}</b>
+📍 {data.get("utp", "Полезный и удобный товар!")}
 
-{data.get("price", "")}
-{data.get("discount", "")}
+🛒 Маркетплейс: {data.get("market", "—")}
+💰 Цена: {data.get("price", "—")}
+🎁 Купон / Акция: {data.get("discount", "—")}
 
-<a href="{data.get("link")}">🛒 Открыть товар</a>
+📦 Доставка: {data.get("delivery", "—")}
+🧾 Отзывы: {data.get("rating", "—")}
+
+🔗 <a href="{data.get("link")}">Перейти к товару</a>
+
+📌 Полезно? Жми ❤️ и делись с друзьями!
 """.strip()
 
     if data.get("image") and await is_valid_image(data["image"]):
@@ -49,11 +58,14 @@ async def handle_link(msg: types.Message):
     else:
         await msg.answer(text, parse_mode="HTML")
 
+
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
 
+
 async def on_shutdown(dp):
     await bot.delete_webhook()
+
 
 if __name__ == "__main__":
     start_webhook(
