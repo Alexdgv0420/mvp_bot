@@ -3,7 +3,6 @@ import asyncio
 from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.utils.executor import start_webhook
-from aiogram.dispatcher import async_task
 from parsers import parse_link
 import aiohttp
 
@@ -25,7 +24,6 @@ async def start_cmd(msg: types.Message):
 
 
 @dp.message_handler()
-@async_task
 async def handle_link(msg: types.Message):
     url = msg.text.strip()
     loop = asyncio.get_event_loop()
