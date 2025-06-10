@@ -34,10 +34,24 @@ async def handle_link(msg: types.Message):
 <a href="{data.get("link")}">🛒 Открыть товар</a>
 """.strip()
 
-    if data.get("image"):
-        await bot.send_photo(msg.chat.id, data["image"], caption=text, parse_mode="HTML")
-    else:
-        await msg.answer(text, parse_mode="HTML")
+    import mimetypes
+import aiohttp
+
+async def is_valid_image(url):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                content_type = resp.headers.get("Content-Type", "")
+                return content_type.startswith("image/")
+    except:
+        return False
+
+# внутри handle_link:
+if data.get("image") and await is_valid_image(data["image"]):
+    await bot.send_photo(msg.chat.id, data["image"], caption=text, parse_mode="HTML")
+else:
+    await msg.answer(text, parse_mode="HTML")
+
 
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
