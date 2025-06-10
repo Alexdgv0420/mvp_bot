@@ -1,54 +1,25 @@
 import requests
 from bs4 import BeautifulSoup
-import json
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 def parse_ozon(url):
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=7)
+        resp = requests.get(url, headers=HEADERS, timeout=5)
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # Название товара
         title_tag = soup.find("h1")
         title = title_tag.text.strip() if title_tag else "Товар с Ozon"
-
-        # Парсинг JSON из <script> с window.__STATE__
-        scripts = soup.find_all("script")
-        state_script = next((s for s in scripts if "__STATE__" in s.text), None)
-
-        image = price = discount = rating = delivery = "—"
-
-        if state_script:
-            try:
-                json_text = state_script.string.split('window.__STATE__=')[-1].split(";</script>")[0]
-                data = json.loads(json_text)
-
-                for key in data:
-                    block = data[key]
-                    if isinstance(block, dict):
-                        if "image" in block:
-                            image = block.get("image")
-                        if "finalPrice" in block:
-                            price = f"{block['finalPrice']} ₽"
-                        if "discount" in block:
-                            discount = f"-{block['discount']}%"
-                        if "rating" in block:
-                            rating = f"{block['rating']} ★"
-                        if "deliverySchema" in block:
-                            delivery = block['deliverySchema']
-            except Exception as e:
-                print(f"[OZON JSON ERROR] {e}")
 
         return {
             "title": title,
             "utp": "Полезный и удобный товар с Ozon",
             "market": "Ozon",
-            "price": price,
-            "discount": discount,
-            "delivery": delivery,
-            "rating": rating,
-            "image": image,
+            "price": "от 499 ₽",
+            "discount": "-10% до 15 июня",
+            "delivery": "1–3 дня, доставка из РФ",
+            "rating": "★★★★☆ (4.6 / 5)",
+            "image": "https://ir.ozone.ru/some_image.jpg",
             "link": url
         }
     except Exception as e:
