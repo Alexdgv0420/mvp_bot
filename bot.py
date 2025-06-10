@@ -37,18 +37,24 @@ async def handle_link(msg: types.Message):
     url = msg.text.strip()
     data = parse_link(url)
 
+    old_price = data.get("old_price")
+    new_price = data.get("price", "—")
+    rating = data.get("rating", "—")
+    market = data.get("market", "—")
+    link = data.get("link")
+
+    price_line = f"<b>{new_price}</b>"
+    if old_price and old_price != new_price:
+        price_line += f" <s>{old_price}</s>"
+
     text = f"""
 🔹 <b>{data.get("title", "Название неизвестно")}</b>
-📍 {data.get("utp", "Полезный и удобный товар!")}
 
-🛒 Маркетплейс: {data.get("market", "—")}
-💰 Цена: {data.get("price", "—")}
-🎁 Купон / Акция: {data.get("discount", "—")}
+🛒 Маркетплейс: {market}  
+💰 Цена: {price_line}  
+🧾 Отзывы: {rating}
 
-📦 Доставка: {data.get("delivery", "—")}
-🧾 Отзывы: {data.get("rating", "—")}
-
-🔗 <a href="{data.get("link")}">Перейти к товару</a>
+🔗 <a href="{link}">Перейти к товару</a>
 
 📌 Полезно? Жми ❤️ и делись с друзьями!
 """.strip()
