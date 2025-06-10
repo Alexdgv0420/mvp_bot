@@ -29,6 +29,8 @@ def parse_wildberries(url):
         product_id = url.split('/catalog/')[1].split('/')[0]
         api_url = f"https://card.wb.ru/cards/v1/detail?appType=1&curr=rub&dest=-1257786&nm={product_id}"
         resp = requests.get(api_url, headers=HEADERS, timeout=5).json()
+        print("🔍 WB PARSE JSON:", resp)  # временный лог для отладки
+
         data = resp['data']['products'][0]
 
         title = data.get("name", "Товар с Wildberries")
@@ -36,7 +38,6 @@ def parse_wildberries(url):
         old_price = f"{data.get('priceU', 0) // 100} ₽"
         rating = f"{data.get('reviewRating', 0)} ★"
 
-        # рабочая ссылка на изображение с Wildberries
         image = f"https://basket-{data['pics'][0] % 10}.wb.ru/vol{data['id'] // 100000}/part{data['id'] // 1000}/{data['id']}/images/big/1.jpg"
 
         return {
