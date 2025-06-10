@@ -1,25 +1,54 @@
 import requests
 from bs4 import BeautifulSoup
+import json
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 def parse_ozon(url):
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=5)
+        resp = requests.get(url, headers=HEADERS, timeout=7)
         soup = BeautifulSoup(resp.text, "html.parser")
 
+        # Название товара
         title_tag = soup.find("h1")
         title = title_tag.text.strip() if title_tag else "Товар с Ozon"
 
+        # Парсинг JSON из <script> с window.__STATE__
+        scripts = soup.find_all("script")
+        state_script = next((s for s in scripts if "__STATE__" in s.text), None)
+
+        image = price = discount = rating = delivery = "—"
+
+        if state_script:
+            try:
+                json_text = state_script.string.split('window.__STATE__=')[-1].split(";</script>")[0]
+                data = json.loads(json_text)
+
+                for key in data:
+                    block = data[key]
+                    if isinstance(block, dict):
+                        if "image" in block:
+                            image = block.get("image")
+                        if "finalPrice" in block:
+                            price = f"{block['finalPrice']} ₽"
+                        if "discount" in block:
+                            discount = f"-{block['discount']}%"
+                        if "rating" in block:
+                            rating = f"{block['rating']} ★"
+                        if "deliverySchema" in block:
+                            delivery = block['deliverySchema']
+            except Exception as e:
+                print(f"[OZON JSON ERROR] {e}")
+
         return {
             "title": title,
-            "utp": "Подходит для повседневного использования. Отличный выбор!",
+            "utp": "Полезный и удобный товар с Ozon",
             "market": "Ozon",
-            "price": "от 499 ₽",
-            "discount": "-30% до 15 июня",
-            "delivery": "1–3 дня, доставка из РФ",
-            "rating": "★★★★☆ (4.6 / 5)",
-            "image": "https://ir.ozone.ru/some_image.jpg",
+            "price": price,
+            "discount": discount,
+            "delivery": delivery,
+            "rating": rating,
+            "image": image,
             "link": url
         }
     except Exception as e:
@@ -28,21 +57,27 @@ def parse_ozon(url):
 
 def parse_wildberries(url):
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=5)
-        soup = BeautifulSoup(resp.text, "html.parser")
+        product_id = url.split('/catalog/')[1].split('/')[0]
+        api_url = f"https://card.wb.ru/cards/v1/detail?appType=1&curr=rub&dest=-1257786&nm={product_id}"
+        resp = requests.get(api_url, headers=HEADERS, timeout=5).json()
+        data = resp['data']['products'][0]
 
-        title_tag = soup.find("h1")
-        title = title_tag.text.strip() if title_tag else "Товар с Wildberries"
+        title = data.get("name", "Товар с Wildberries")
+        price = f"{data.get('priceU', 0) // 100} ₽"
+        discount = f"-{data.get('sale', 0)}%"
+        rating = f"{data.get('reviewRating', 0)} ★"
+        image = f"https://images.wbstatic.net/big/new/{data['id']}-1.jpg"
+        delivery = "Доставка за 1–3 дня"
 
         return {
             "title": title,
-            "utp": "Практичный товар на каждый день. Берут повторно!",
+            "utp": "Товар с хорошими отзывами, доставка из РФ",
             "market": "Wildberries",
-            "price": "от 299 ₽",
-            "discount": "-15% по акции до 12 июня",
-            "delivery": "Быстрая доставка из РФ",
-            "rating": "★★★★☆ (4.7 / 5)",
-            "image": "https://images.wbstatic.net/some_image.jpg",
+            "price": price,
+            "discount": discount,
+            "delivery": delivery,
+            "rating": rating,
+            "image": image,
             "link": url
         }
     except Exception as e:
@@ -51,21 +86,30 @@ def parse_wildberries(url):
 
 def parse_yandex_market(url):
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=5)
+        resp = requests.get(url, headers=HEADERS, timeout=7)
         soup = BeautifulSoup(resp.text, "html.parser")
 
         title_tag = soup.find("h1")
-        title = title_tag.text.strip() if title_tag else "Товар с Яндекс.Маркета"
+        title = title_tag.text.strip() if title_tag else "Товар с Яндекс.Маркет"
+
+        price_tag = soup.select_one('[data-auto="mainPrice"]')
+        price = price_tag.text.strip() if price_tag else "—"
+
+        rating_tag = soup.select_one('[data-zone-name="rating"]')
+        rating = rating_tag.text.strip() if rating_tag else "—"
+
+        image_tag = soup.find("img")
+        image = image_tag.get("src") if image_tag else None
 
         return {
             "title": title,
-            "utp": "Популярно на Яндекс.Маркете. Часто заказывают!",
+            "utp": "Один из хитов продаж на Я.Маркете",
             "market": "Яндекс.Маркет",
-            "price": "от 999 ₽",
-            "discount": "-10% с купоном до 20 июня",
-            "delivery": "Склад в РФ, доставка 2–4 дня",
-            "rating": "★★★★☆ (4.5 / 5)",
-            "image": "https://avatars.mds.yandex.net/some_image.jpg",
+            "price": price,
+            "discount": "—",
+            "delivery": "Обычно 2–4 дня, из РФ",
+            "rating": rating,
+            "image": image,
             "link": url
         }
     except Exception as e:
