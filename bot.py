@@ -4,6 +4,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.types import Update
 from aiogram.utils.executor import start_webhook
 from parsers import parse_link
+import aiohttp
 
 TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
@@ -15,6 +16,15 @@ WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 WEBAPP_HOST = "0.0.0.0"
 WEBAPP_PORT = int(os.getenv("PORT", 10000))  # Render пробрасывает порт через $PORT
+
+async def is_valid_image(url):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                content_type = resp.headers.get("Content-Type", "")
+                return content_type.startswith("image/")
+    except:
+        return False
 
 @dp.message_handler(commands=["start"])
 async def start_cmd(msg: types.Message):
@@ -34,24 +44,10 @@ async def handle_link(msg: types.Message):
 <a href="{data.get("link")}">🛒 Открыть товар</a>
 """.strip()
 
-    import mimetypes
-import aiohttp
-
-async def is_valid_image(url):
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                content_type = resp.headers.get("Content-Type", "")
-                return content_type.startswith("image/")
-    except:
-        return False
-
-# внутри handle_link:
-if data.get("image") and await is_valid_image(data["image"]):
-    await bot.send_photo(msg.chat.id, data["image"], caption=text, parse_mode="HTML")
-else:
-    await msg.answer(text, parse_mode="HTML")
-
+    if data.get("image") and await is_valid_image(data["image"]):
+        await bot.send_photo(msg.chat.id, data["image"], caption=text, parse_mode="HTML")
+    else:
+        await msg.answer(text, parse_mode="HTML")
 
 async def on_startup(dp):
     await bot.set_webhook(WEBHOOK_URL)
