@@ -13,11 +13,9 @@ def parse_ozon(url):
 
         return {
             "title": title,
-            "utp": "Полезный и удобный товар с Ozon",
             "market": "Ozon",
-            "price": "от 499 ₽",
-            "discount": "-10% до 15 июня",
-            "delivery": "1–3 дня, доставка из РФ",
+            "price": "299 ₽",
+            "old_price": "499 ₽",
             "rating": "★★★★☆ (4.6 / 5)",
             "image": "https://ir.ozone.ru/some_image.jpg",
             "link": url
@@ -34,19 +32,18 @@ def parse_wildberries(url):
         data = resp['data']['products'][0]
 
         title = data.get("name", "Товар с Wildberries")
-        price = f"{data.get('priceU', 0) // 100} ₽"
-        discount = f"-{data.get('sale', 0)}%"
+        new_price = f"{data.get('salePriceU', 0) // 100} ₽"
+        old_price = f"{data.get('priceU', 0) // 100} ₽"
         rating = f"{data.get('reviewRating', 0)} ★"
-        image = f"https://images.wbstatic.net/big/new/{data['id']}-1.jpg"
-        delivery = "Доставка за 1–3 дня"
+
+        # рабочая ссылка на изображение с Wildberries
+        image = f"https://basket-{data['pics'][0] % 10}.wb.ru/vol{data['id'] // 100000}/part{data['id'] // 1000}/{data['id']}/images/big/1.jpg"
 
         return {
             "title": title,
-            "utp": "Товар с хорошими отзывами, доставка из РФ",
             "market": "Wildberries",
-            "price": price,
-            "discount": discount,
-            "delivery": delivery,
+            "price": new_price,
+            "old_price": old_price,
             "rating": rating,
             "image": image,
             "link": url
@@ -74,11 +71,9 @@ def parse_yandex_market(url):
 
         return {
             "title": title,
-            "utp": "Один из хитов продаж на Я.Маркете",
             "market": "Яндекс.Маркет",
             "price": price,
-            "discount": "—",
-            "delivery": "Обычно 2–4 дня, из РФ",
+            "old_price": None,
             "rating": rating,
             "image": image,
             "link": url
@@ -90,11 +85,9 @@ def parse_yandex_market(url):
 def fallback(url, market):
     return {
         "title": f"Товар с {market}",
-        "utp": "Интересный товар — посмотри сам!",
         "market": market,
         "price": "—",
-        "discount": "—",
-        "delivery": "—",
+        "old_price": None,
         "rating": "—",
         "image": None,
         "link": url
