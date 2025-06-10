@@ -19,16 +19,6 @@ WEBAPP_HOST = "0.0.0.0"
 WEBAPP_PORT = int(os.getenv("PORT", 10000))
 
 
-async def is_valid_image(url):
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                content_type = resp.headers.get("Content-Type", "")
-                return content_type.startswith("image/")
-    except:
-        return False
-
-
 @dp.message_handler(commands=["start"])
 async def start_cmd(msg: types.Message):
     await msg.answer("Пришли ссылку на товар — я подготовлю красивый пост!")
@@ -63,8 +53,11 @@ async def handle_link(msg: types.Message):
 📌 Полезно? Жми ❤️ и делись с друзьями!
 """.strip()
 
-    if data.get("image") and await is_valid_image(data["image"]):
-        await bot.send_photo(msg.chat.id, data["image"], caption=text, parse_mode="HTML")
+    if data.get("image"):
+        try:
+            await bot.send_photo(msg.chat.id, data["image"], caption=text, parse_mode="HTML")
+        except:
+            await msg.answer(text, parse_mode="HTML")
     else:
         await msg.answer(text, parse_mode="HTML")
 
